@@ -132,10 +132,7 @@ describe("discoverModels fallback to /v1/models", () => {
       });
       const result = await discoverModels("https://litellm.example.com", "sk-test", {});
       expect(result.source).toBe("models_list");
-      expect(result.models.map((m) => m.id).sort()).toEqual([
-        "anthropic/claude-3-5-sonnet",
-        "openai/gpt-4o",
-      ]);
+      expect(result.models.map((m) => m.id).sort()).toEqual(["anthropic/claude-3-5-sonnet", "openai/gpt-4o"]);
       const anthropic = result.models.find((m) => m.id === "anthropic/claude-3-5-sonnet")!;
       expect(anthropic.name).toBe("anthropic/claude-3-5-sonnet (no metadata)");
       expect(anthropic.compat).toEqual({ supportsStore: false, cacheControlFormat: "anthropic" });
@@ -144,9 +141,7 @@ describe("discoverModels fallback to /v1/models", () => {
 
   it("throws when /model/info returns a non-401/403/404 error", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 500 }));
-    await expect(
-      discoverModels("https://litellm.example.com", "sk-test", {}),
-    ).rejects.toThrow(/500/);
+    await expect(discoverModels("https://litellm.example.com", "sk-test", {})).rejects.toThrow(/500/);
   });
 });
 
@@ -155,15 +150,11 @@ describe("discoverModels timeout", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation((_input, init) => {
       return new Promise((_resolve, reject) => {
         const signal = (init as { signal?: AbortSignal } | undefined)?.signal;
-        signal?.addEventListener("abort", () =>
-          reject(signal.reason ?? new Error("aborted")),
-        );
+        signal?.addEventListener("abort", () => reject(signal.reason ?? new Error("aborted")));
       });
     });
     const start = Date.now();
-    await expect(
-      discoverModels("https://litellm.example.com", "sk-test", { timeoutMs: 30 }),
-    ).rejects.toBeDefined();
+    await expect(discoverModels("https://litellm.example.com", "sk-test", { timeoutMs: 30 })).rejects.toBeDefined();
     expect(Date.now() - start).toBeLessThan(500);
   });
 });

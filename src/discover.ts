@@ -23,20 +23,14 @@ export function buildCompat(modelId: string): ProviderModelConfig["compat"] {
   return { supportsStore: false };
 }
 
-function withTimeout(
-  timeoutMs: number,
-  signal?: AbortSignal,
-): { signal: AbortSignal; cancel: () => void } {
+function withTimeout(timeoutMs: number, signal?: AbortSignal): { signal: AbortSignal; cancel: () => void } {
   const controller = new AbortController();
   const onAbort = () => controller.abort(signal?.reason);
   if (signal) {
     if (signal.aborted) controller.abort(signal.reason);
     else signal.addEventListener("abort", onAbort, { once: true });
   }
-  const timer = setTimeout(
-    () => controller.abort(new Error(`Timed out after ${timeoutMs}ms`)),
-    timeoutMs,
-  );
+  const timer = setTimeout(() => controller.abort(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs);
   return {
     signal: controller.signal,
     cancel: () => {
