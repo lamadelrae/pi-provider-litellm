@@ -4,6 +4,8 @@ import type {
   DiscoveryResult,
   ModelInfoEntry,
   ModelInfoResponse,
+  ModelsListEntry,
+  ModelsListResponse,
 } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 5000;
@@ -86,6 +88,21 @@ function mapFromModelInfo(entry: ModelInfoEntry): ProviderModelConfig | undefine
   };
 }
 
+function mapFromModelsList(entry: ModelsListEntry): ProviderModelConfig | undefined {
+  const id = entry.id;
+  if (!id) return undefined;
+  return {
+    id,
+    name: `${id} (no metadata)`,
+    reasoning: false,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: DEFAULT_CONTEXT_WINDOW,
+    maxTokens: DEFAULT_MAX_TOKENS,
+    compat: buildCompat(id),
+  };
+}
+
 export async function discoverModels(
   baseUrl: string,
   apiKey: string,
@@ -99,6 +116,15 @@ export async function discoverModels(
       .filter((m): m is ProviderModelConfig => m !== undefined);
     return { source: "model_info", models };
   }
-  // Fallback to /v1/models on 401/403/404 (handled in Task 11).
-  throw new Error(`/model/info returned ${infoResult.status}`);
+  if (![401, 403, 404].includes(infoResult.status)) {
+    throw new Error(`/model/info returned ${infoResult.status}`);
+  }
+  const listResult = await fetchJson<ModelsListResponse>(`${base}/v1/models`, apiKey, options);
+  if (!listResult.ok) {
+    throw new Error(`/v1/models returned ${listResult.status}`);
+  }
+  const models = (listResult.data.data ?? [])
+    .map(mapFromModelsList)
+    .filter((m): m is ProviderModelConfig => m !== undefined);
+  return { source: "models_list", models };
 }

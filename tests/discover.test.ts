@@ -116,3 +116,36 @@ describe("discoverModels via /model/info", () => {
     });
   });
 });
+
+describe("discoverModels fallback to /v1/models", () => {
+  for (const status of [401, 403, 404]) {
+    it(`falls back when /model/info returns ${status}`, async () => {
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        const url = input instanceof URL ? input.toString() : String(input);
+        if (url.endsWith("/model/info")) return new Response(null, { status });
+        if (url.endsWith("/v1/models")) {
+          return jsonResponse(200, {
+            data: [{ id: "openai/gpt-4o" }, { id: "anthropic/claude-3-5-sonnet" }],
+          });
+        }
+        throw new Error(`unexpected URL: ${url}`);
+      });
+      const result = await discoverModels("https://litellm.example.com", "sk-test", {});
+      expect(result.source).toBe("models_list");
+      expect(result.models.map((m) => m.id).sort()).toEqual([
+        "anthropic/claude-3-5-sonnet",
+        "openai/gpt-4o",
+      ]);
+      const anthropic = result.models.find((m) => m.id === "anthropic/claude-3-5-sonnet")!;
+      expect(anthropic.name).toBe("anthropic/claude-3-5-sonnet (no metadata)");
+      expect(anthropic.compat).toEqual({ supportsStore: false, cacheControlFormat: "anthropic" });
+    });
+  }
+
+  it("throws when /model/info returns a non-401/403/404 error", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 500 }));
+    await expect(
+      discoverModels("https://litellm.example.com", "sk-test", {}),
+    ).rejects.toThrow(/500/);
+  });
+});
