@@ -110,4 +110,25 @@ describe("extension startup", () => {
 
     expect(seenAuthHeaders).toEqual(["Bearer stored-key"]);
   });
+
+  it("does not fetch on refresh when discovery timeout is zero", async () => {
+    const agentDir = await makeAgentDir();
+    process.env.LITELLM_BASE_URL = "https://litellm.example.com";
+    process.env.LITELLM_API_KEY = "env-key";
+    process.env.LITELLM_DISCOVERY_TIMEOUT_MS = "0";
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse(200, {
+        data: [{ model_name: "openai/gpt-4o", model_info: { mode: "chat" } }],
+      }),
+    );
+    const notify = vi.fn();
+
+    const extension = await loadExtension(agentDir);
+    const pi = createPi();
+    await extension(pi);
+    await pi.commands.get("litellm-refresh")?.handler([], { ui: { notify } });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledWith("LiteLLM refresh disabled (LITELLM_DISCOVERY_TIMEOUT_MS=0)", "warning");
+  });
 });

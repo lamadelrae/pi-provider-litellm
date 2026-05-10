@@ -197,13 +197,17 @@ export default async function (pi: ExtensionAPI): Promise<void> {
         ctx.ui.notify(`LiteLLM refresh disabled (${ENV_OFFLINE}=1)`, "warning");
         return;
       }
+      const timeoutMs = getDiscoveryTimeoutMs();
+      if (timeoutMs === 0) {
+        ctx.ui.notify(`LiteLLM refresh disabled (${ENV_TIMEOUT}=0)`, "warning");
+        return;
+      }
       const fresh = await resolveCredentials();
       const freshFp = fresh.apiKey ? fingerprint(fresh.apiKey) : undefined;
       if (!fresh.baseUrl || !fresh.apiKey || !freshFp) {
         ctx.ui.notify("LiteLLM refresh failed: no credentials. Run /login litellm or set env vars.", "error");
         return;
       }
-      const timeoutMs = getDiscoveryTimeoutMs() || DEFAULT_TIMEOUT_MS;
       try {
         const result = await discoverModels(fresh.baseUrl, fresh.apiKey, { timeoutMs });
         await writeCache(getCachePath(), {
