@@ -57,6 +57,11 @@
     "@earendil-works/pi-ai": "^0.74.0",
     "@earendil-works/pi-coding-agent": "^0.74.0"
   },
+  "overrides": {
+    "basic-ftp": "6.0.1",
+    "fast-xml-builder": "1.2.0",
+    "protobufjs": "8.2.1"
+  },
   "devDependencies": {
     "@earendil-works/pi-ai": "^0.74.0",
     "@earendil-works/pi-coding-agent": "^0.74.0",
