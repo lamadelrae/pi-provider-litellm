@@ -1,12 +1,12 @@
-import { createHmac } from "node:crypto";
+import { scryptSync } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { CacheFile } from "./types.js";
 
-const FINGERPRINT_KEY = "pi-provider-litellm-cache-fingerprint-v1";
+const FINGERPRINT_SALT = "pi-provider-litellm-cache-fingerprint-v1";
 
 export function fingerprint(apiKey: string): string {
-  return createHmac("sha256", FINGERPRINT_KEY).update(apiKey).digest("hex");
+  return scryptSync(apiKey, FINGERPRINT_SALT, 32).toString("hex");
 }
 
 export function isCacheValid(cache: CacheFile | null, baseUrl: string, apiKey: string): boolean {
